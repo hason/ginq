@@ -17,7 +17,6 @@
 namespace Ginq;
 
 use Ginq\Core\Selector;
-use Ginq\Comparer\ComparerResolver;
 use Ginq\Core\JoinSelector;
 use Ginq\Core\Comparer;
 use Ginq\Core\EqualityComparer;
@@ -48,24 +47,19 @@ class Ginq implements \IteratorAggregate
      */
     protected $it;
 
-    /**
-     * @var Core\IterProvider
-     */
-    protected static $gen = null;
+    protected $comparer;
 
-    public static function useIterator()
-    {
-        self::$gen = Core\IterProviderIterImpl::getInstance();
-    }
+    protected $iteratorImpl;
 
     /**
      * Constructor
      *
      * @param array|\Iterator $it  Any traversable variable
      */
-    protected function __construct($it)
+    public function __construct($it, $iteratorImpl)
     {
         $this->it = $it;
+        $this->comparer = $comparer ?: Comparer::getDefault();
     }
 
     /**
@@ -302,13 +296,12 @@ class Ginq implements \IteratorAggregate
         if (!$it->valid()) {
             throw new \RuntimeException("Sequence is empty");
         }
-        $comparer = Comparer::getDefault();
         $selector = SelectorResolver::resolve($selector, ValueSelector::getInstance());
         $min = $selector->select($it->current(), $it->key());
         $it->next();
         while ($it->valid()) {
             $x = $selector->select($it->current(), $it->key());
-            if ($comparer->compare($x, $min) < 0) $min = $x;
+            if ($this->comparer->compare($x, $min) < 0) $min = $x;
             $it->next();
         }
         return $min;
@@ -325,13 +318,12 @@ class Ginq implements \IteratorAggregate
         if (!$it->valid()) {
             throw new \RuntimeException("Sequence is empty");
         }
-        $comparer = Comparer::getDefault();
         $selector = SelectorResolver::resolve($selector, ValueSelector::getInstance());
         $max = $selector->select($it->current(), $it->key());
         $it->next();
         while ($it->valid()) {
             $x = $selector->select($it->current(), $it->key());
-            if (0 < $comparer->compare($x, $max)) $max = $x;
+            if (0 < $this->comparer->compare($x, $max)) $max = $x;
             $it->next();
         }
         return $max;
@@ -399,9 +391,9 @@ class Ginq implements \IteratorAggregate
             return $this;
         } else {
             if ($default instanceof \Closure) {
-                return self::from(self::$gen->lazyRepeat($default, 1));
+                return static::from(self::$gen->lazyRepeat($default, 1));
             } else {
-                return self::from(self::$gen->repeat($default, 1));
+                return static::from(self::$gen->repeat($default, 1));
             }
         }
     }
@@ -592,7 +584,7 @@ class Ginq implements \IteratorAggregate
      */
     public static function zero()
     {
-        return self::from(self::$gen->zero());
+        return static::from(self::$gen->zero());
     }
 
     /**
@@ -602,7 +594,7 @@ class Ginq implements \IteratorAggregate
      */
     public static function unfold($seed, $generator)
     {
-        return self::from(self::$gen->unfold($seed, $generator));
+        return static::from(self::$gen->unfold($seed, $generator));
     }
 
     /**
@@ -638,9 +630,9 @@ class Ginq implements \IteratorAggregate
                 "Ginq::range() numeric start arguments expected.");
         }
         if (is_null($stop)) {
-            return self::from(self::$gen->rangeInf($start, $step));
+            return static::from(self::$gen->rangeInf($start, $step));
         } else {
-            return self::from(self::$gen->range($start, $stop, $step));
+            return static::from(self::$gen->range($start, $stop, $step));
         }
     }
 
@@ -651,7 +643,7 @@ class Ginq implements \IteratorAggregate
      */
     public static function repeat($element, $count = null)
     {
-        return self::from(self::$gen->repeat($element, $count));
+        return static::from(self::$gen->repeat($element, $count));
     }
 
     /**
@@ -660,7 +652,7 @@ class Ginq implements \IteratorAggregate
      */
     public static function cycle($xs)
     {
-        return self::from(self::$gen->cycle(IteratorUtil::iterator($xs)));
+        return static::from(self::$gen->cycle(IteratorUtil::iterator($xs)));
     }
 
     /**
@@ -672,7 +664,7 @@ class Ginq implements \IteratorAggregate
         if ($xs instanceof self) {
             return $xs;
         } else {
-            return new self(IteratorUtil::iterator($xs));
+            return new static(IteratorUtil::iterator($xs));
         }
     }
 
@@ -684,7 +676,7 @@ class Ginq implements \IteratorAggregate
     public static function fromLazy($sourceFactory)
     {
         if (is_callable($sourceFactory)) {
-            return new self(self::$gen->lazySource($sourceFactory));
+            return static::from(self::$gen->lazySource($sourceFactory));
         } else {
             throw new \InvalidArgumentException('$sourceFactory is not callable');
         }
@@ -695,7 +687,7 @@ class Ginq implements \IteratorAggregate
      */
     public function renum()
     {
-        return self::from(self::$gen->renum($this->getIterator()));
+        return static::from(self::$gen->renum($this->getIterator()));
     }
 
     /**
@@ -704,7 +696,7 @@ class Ginq implements \IteratorAggregate
      */
     public function each($fn)
     {
-        return self::from(self::$gen->each($this->getIterator(), $fn));
+        return static::from(self::$gen->each($this->getIterator(), $fn));
     }
 
     /**
@@ -724,7 +716,7 @@ class Ginq implements \IteratorAggregate
      */
     public function select($valueSelector = null, $keySelector = null)
     {
-        return self::from(self::$gen->select(
+        return static::from(self::$gen->select(
             $this->getIterator(),
             SelectorResolver::resolve($valueSelector, ValueSelector::getInstance()),
             SelectorResolver::resolve($keySelector, KeySelector::getInstance())
@@ -759,7 +751,7 @@ class Ginq implements \IteratorAggregate
      */
     public function where($predicate)
     {
-        return self::from(self::$gen->where(
+        return static::from(self::$gen->where(
             $this->getIterator(),
             PredicateResolver::resolve($predicate)
         ));
@@ -770,7 +762,7 @@ class Ginq implements \IteratorAggregate
      */
     public function reverse()
     {
-        return self::from(self::$gen->reverse($this->getIterator()));
+        return static::from(self::$gen->reverse($this->getIterator()));
     }
 
     /**
@@ -779,7 +771,7 @@ class Ginq implements \IteratorAggregate
      */
     public function take($n)
     {
-        return self::from(self::$gen->take($this->getIterator(), $n));
+        return static::from(self::$gen->take($this->getIterator(), $n));
     }
 
     /**
@@ -788,7 +780,7 @@ class Ginq implements \IteratorAggregate
      */
     public function drop($n)
     {
-        return self::from(self::$gen->drop($this->getIterator(), $n));
+        return static::from(self::$gen->drop($this->getIterator(), $n));
     }
 
     /**
@@ -797,7 +789,7 @@ class Ginq implements \IteratorAggregate
      */
     public function takeWhile($predicate)
     {
-        return self::from(self::$gen->takeWhile(
+        return static::from(self::$gen->takeWhile(
             $this->getIterator(),
             PredicateResolver::resolve($predicate)
         ));
@@ -809,7 +801,7 @@ class Ginq implements \IteratorAggregate
      */
     public function dropWhile($predicate)
     {
-        return self::from(self::$gen->dropWhile(
+        return static::from(self::$gen->dropWhile(
             $this->getIterator(), PredicateResolver::resolve($predicate)
         ));
     }
@@ -820,9 +812,9 @@ class Ginq implements \IteratorAggregate
      */
     public function concat($rhs)
     {
-        return self::from(self::$gen->concat(
+        return static::from(self::$gen->concat(
             $this->getIterator(),
-            self::from(IteratorUtil::iterator($rhs))
+            static::from(IteratorUtil::iterator($rhs))
         ));
     }
 
@@ -846,11 +838,11 @@ class Ginq implements \IteratorAggregate
     public function selectMany($manySelector, $resultValueSelector = null, $resultKeySelector = null)
     {
         if (is_null($resultValueSelector) && is_null($resultKeySelector)) {
-            return self::from(self::$gen->selectMany(
+            return static::from(self::$gen->selectMany(
                 $this->getIterator(),
                 SelectorResolver::resolve($manySelector, ValueSelector::getInstance())));
         } else {
-            return self::from(self::$gen->selectManyWithJoin(
+            return static::from(self::$gen->selectManyWithJoin(
                 $this->getIterator(),
                 SelectorResolver::resolve($manySelector, ValueSelector::getInstance()),
                 JoinSelectorResolver::resolve($resultValueSelector, ValueJoinSelector::getInstance()),
@@ -871,7 +863,7 @@ class Ginq implements \IteratorAggregate
                          $outerCompareKeySelector, $innerCompareKeySelector,
                          $resultValueSelector, $resultKeySelector = null)
     {
-        return self::from(self::$gen->join(
+        return static::from(self::$gen->join(
             $this->getIterator(),
             IteratorUtil::iterator($inner),
             SelectorResolver::resolve($outerCompareKeySelector, ValueSelector::getInstance()),
@@ -890,7 +882,7 @@ class Ginq implements \IteratorAggregate
      */
     public function zip($rhs, $resultValueSelector, $resultKeySelector = null)
     {
-        return self::from(self::$gen->zip(
+        return static::from(self::$gen->zip(
             $this->getIterator(),
             IteratorUtil::iterator($rhs),
             JoinSelectorResolver::resolve($resultValueSelector, ValueJoinSelector::getInstance()),
@@ -905,7 +897,7 @@ class Ginq implements \IteratorAggregate
      */
     public function groupBy($compareKeySelector, $elementSelector = null)
     {
-        return self::from(self::$gen->groupBy(
+        return static::from(self::$gen->groupBy(
             $this->getIterator(),
             SelectorResolver::resolve($compareKeySelector, ValueSelector::getInstance()),
             SelectorResolver::resolve($elementSelector,    ValueSelector::getInstance()),
@@ -925,7 +917,7 @@ class Ginq implements \IteratorAggregate
                               $outerCompareKeySelector, $innerCompareKeySelector,
                               $resultValueSelector, $resultKeySelector = null)
     {
-        return self::from(self::$gen->groupJoin(
+        return static::from(self::$gen->groupJoin(
             $this->getIterator(),
             IteratorUtil::iterator($inner),
             SelectorResolver::resolve($outerCompareKeySelector, ValueSelector::getInstance()),
@@ -943,7 +935,7 @@ class Ginq implements \IteratorAggregate
     public function orderBy($compareKeySelector = null)
     {
         $compareKeySelector = SelectorResolver::resolve($compareKeySelector, ValueSelector::getInstance());
-        $comparer = ComparerResolver::resolve(null, Comparer::getDefault());
+        $comparer = ComparerResolver::resolve(null, $this->comparer);
         $comparer = new ProjectionComparer($compareKeySelector, $comparer);
         return new OrderingGinq($this->getIterator(), $comparer);
     }
@@ -955,7 +947,7 @@ class Ginq implements \IteratorAggregate
     public function orderByDesc($compareKeySelector = null)
     {
         $compareKeySelector = SelectorResolver::resolve($compareKeySelector, ValueSelector::getInstance());
-        $comparer = ComparerResolver::resolve(null, Comparer::getDefault());
+        $comparer = ComparerResolver::resolve(null, $this->comparer);
         $comparer = new ProjectionComparer($compareKeySelector, $comparer);
         $comparer = new ReverseComparer($comparer);
         return new OrderingGinq($this->getIterator(), $comparer);
@@ -966,7 +958,7 @@ class Ginq implements \IteratorAggregate
      */
     public function distinct()
     {
-        return self::from(
+        return static::from(
             self::$gen->distinct($this->getIterator(),
                 EqualityComparerResolver::resolve(null, EqualityComparer::getDefault())
             ));
@@ -978,7 +970,7 @@ class Ginq implements \IteratorAggregate
      */
     public function union($rhs)
     {
-        return self::from(
+        return static::from(
             self::$gen->union(
                 $this->getIterator(),
                 $rhs,
@@ -992,7 +984,7 @@ class Ginq implements \IteratorAggregate
      */
     public function intersect($rhs)
     {
-        return self::from(
+        return static::from(
             self::$gen->intersect(
                 $this->getIterator(),
                 $rhs,
@@ -1006,7 +998,7 @@ class Ginq implements \IteratorAggregate
      */
     public function except($rhs)
     {
-        return self::from(
+        return static::from(
             self::$gen->except(
                 $this->getIterator(),
                 $rhs,
@@ -1254,10 +1246,6 @@ class Ginq implements \IteratorAggregate
 
     public static function listRegisteredFunctions()
     {
-        return self::$registeredFunctions;
+        return static::$registeredFunctions;
     }
 }
-
-Ginq::useIterator();
-
-

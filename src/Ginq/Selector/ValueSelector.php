@@ -16,8 +16,6 @@
 
 namespace Ginq\Selector;
 
-use Ginq\Core\Selector;
-
 class ValueSelector implements Selector
 {
     /**

@@ -55,22 +55,6 @@ use Ginq\Iterator\MemoizeIterator;
  */
 class IterProviderIterImpl implements IterProvider
 {
-
-    /**
-     * @var IterProviderIterImpl
-     */
-    static private $inst;
-
-    /**
-     * @return IterProviderIterImpl
-     */
-    static final public function getInstance() {
-        if (is_null(self::$inst)) {
-            self::$inst = new self();
-        }
-        return self::$inst;
-    }
-
     /**
      * @return \Ginq\Iterator\ZeroIterator
      */

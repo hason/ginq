@@ -19,22 +19,6 @@ namespace Ginq\Core;
 class EqualityComparer
 {
     /**
-     * @var EqualityComparer
-     */
-    static private $inst;
-
-    /**
-     * @return EqualityComparer
-     */
-    static final public function getDefault()
-    {
-        if (is_null(self::$inst)) {
-            self::$inst = new EqualityComparer();
-        }
-        return self::$inst;
-    }
-
-    /**
      * @param mixed      $v0 - left value
      * @param mixed      $v1 - right value
      * @param mixed|null $k0 - left key

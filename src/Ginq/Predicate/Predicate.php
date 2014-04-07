@@ -14,7 +14,7 @@
  * @package    Ginq
  */
 
-namespace Ginq\Core;
+namespace Ginq\Predicate;
 
 interface Predicate
 {

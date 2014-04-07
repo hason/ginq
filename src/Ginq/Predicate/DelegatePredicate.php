@@ -16,8 +16,6 @@
 
 namespace Ginq\Predicate;
 
-use Ginq\Core\Predicate;
-
 class DelegatePredicate implements Predicate
 {
     /**

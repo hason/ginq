@@ -30,21 +30,6 @@ use Ginq\Comparer\ComparerResolver;
 class OrderingGinq extends Ginq
 {
     /**
-     * @var Comparer
-     */
-    protected $comparer;
-
-    /**
-     * @param \Iterator $it
-     * @param \Ginq\Core\Comparer $comparer
-     */
-    public function __construct($it, $comparer)
-    {
-        $this->comparer = $comparer;
-        parent::__construct($it);
-    }
-
-    /**
      * @return \Iterator
      */
     public function getIterator()
@@ -62,7 +47,7 @@ class OrderingGinq extends Ginq
         $comparer = ComparerResolver::resolve(null, Comparer::getDefault());
         $comparer = new ProjectionComparer($compareKeySelector, $comparer);
         $comparer = new CompoundComparer($this->comparer, $comparer);
-        return new OrderingGinq($this->it, $comparer);
+        return new static($this->it, $comparer);
     }
 
     /**
@@ -76,7 +61,7 @@ class OrderingGinq extends Ginq
         $comparer = new ProjectionComparer($compareKeySelector, $comparer);
         $comparer = new ReverseComparer($comparer);
         $comparer = new CompoundComparer($this->comparer, $comparer);
-        return new OrderingGinq($this->it, $comparer);
+        return new static($this->it, $comparer);
     }
 }
 

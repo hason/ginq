@@ -16,7 +16,6 @@
 
 namespace Ginq\Selector;
 
-use Ginq\Core\Selector;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyPath;

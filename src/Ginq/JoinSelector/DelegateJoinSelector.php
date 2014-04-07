@@ -16,8 +16,6 @@
 
 namespace Ginq\JoinSelector;
 
-use Ginq\Core\JoinSelector;
-
 class DelegateJoinSelector implements JoinSelector
 {
     /**

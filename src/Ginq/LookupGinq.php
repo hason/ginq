@@ -54,7 +54,7 @@ class LookupGinq extends Ginq
     public function getIterator()
     {
         $dict = $this->dict;
-        $it = Ginq::from($dict->keys())
+        $it = static::from($dict->keys())
             ->select(
                 function($key) use (&$dict) {
                     return new GroupingGinq(IteratorUtil::iterator($dict->get($key)), $key);

@@ -14,7 +14,7 @@
  * @package    Ginq
  */
 
-namespace Ginq\Core;
+namespace Ginq\Selector;
 
 interface Selector
 {
